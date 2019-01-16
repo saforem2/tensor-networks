@@ -1,0 +1,6 @@
+*.pyc
+tags
+.ipynb_checkpoints/
+*.npy
+originals/
+old/
