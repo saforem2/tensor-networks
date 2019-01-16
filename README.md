@@ -1,12 +1,11 @@
 # tensor-networks
 O(3) tensor network simulation.
 
-Main method defined in `sparsechrgmain.py`. For additional help with running as
-a script, try  
+* `main` method defined in: `sparsechrgmain.py` for running the simulation as a script. 
+	
+* For additional help and a brief explanation of expected arguments, try:  
 
 `python3 sparsechrgmain.py --help`
-
-to show expected arguments with brief description.
 
 
 ## Contact
