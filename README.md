@@ -9,18 +9,14 @@ a script, try
 to show expected arguments with brief description.
 
 
-
-
-
 ## Contact
 
-***(Original) Code author:*** Judah Unmuth-Yockey
+***Original author:*** Judah Unmuth-Yockey
 
-***(Modified) Code author:*** Sam Foreman (github: @saforem2)
+***Current author:*** Sam Foreman (github: @saforem2)
 
 ***Pull requests and issues for original code:*** @saforem2
 
-## Citation
 
 ## Note
 
