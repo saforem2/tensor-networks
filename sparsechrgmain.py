@@ -87,7 +87,9 @@ def main(args):
             csf.normalize(B, norm)
 
     
-    print(evals)
+    print(evals[0][:10])
+    print(evals[1][:10])
+    print(evals[-1][:10])
 
 
 if __name__ == '__main__':

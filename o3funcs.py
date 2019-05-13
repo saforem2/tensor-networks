@@ -34,6 +34,14 @@ def Acoeff(n, x):
         return 4 * np.pi
     return (2 * np.pi) ** (1.5) * iv(n + 0.5, x) / np.sqrt(x)
 
+# def Acoeff(n, x):
+#     """Acoeff n, x."""
+#     if ((x == 0) and (n != 0)):
+#         return 0.0
+#     if (n == 0):
+#         return 1.
+#     return iv(n + 0.5, x) / iv(0.5, x) 
+
 def tensorgen(beta, mu, D, lmax):
     """
     Generates the initial tensor for O(3) spin.
@@ -313,6 +321,93 @@ def getbot(ctdict, chrglist, D):
     print(f'get bot time: {time1 - time0}')
     return bot
 
+# def getQ(top, bot, cvals, D):
+#     """
+#     Creates a block of the Q matrix provided by charge pair inputs.
+
+#     Parameters
+#     ----------
+#     top : A dictionary parameterizing the top part of the Q matrix.
+#     bot : A dictionary parameterizing the bottom part of the Q matrix.
+#     cvals : A list of tuples containing charge pairs that are relavent
+#             for building a block of the Q matrix.
+#     D : The absolute value of the largest Bessel function used.
+
+#     Returns
+#     -------
+#     dict : A dictionary with the values of the block of the Q matrix.
+#     sizes : A list tuples containing the shape of the two leftmost legs
+#             of the Q matrix block.  Used to build the U tensor dictionary.
+
+#     """
+#     sizes = []
+#     time0 = time()
+#     # print cvals
+#     for ttr, btr in cvals:
+#         temp = []
+#         special = False
+#         for ttl, btl in cvals:
+#             part = 0.0
+#             #  for xp in range(max(-D, -D+ttr-ttl, -D+btl-btr), min(D,
+#             #  D+ttr-ttl, D+btl-btr)+1):
+#             _max = max(-D, -D + ttr - ttl, -D + btl - btr)
+#             _min = min(D, D + ttr - ttl, D + btl - btr)
+#             for xp in range(_max, _min + 1):
+#                 t1s = top[ttl, xp, ttr].shape
+#                 t2s = bot[btr, xp, btl].shape
+#                 temp1 = np.reshape(
+#                     top[ttl, xp, ttr], (t1s[0]*t1s[1], t1s[2]*t1s[3])
+#                 )
+#                 temp2 = np.reshape(
+#                     bot[btr, xp, btl], (t2s[0]*t2s[1], t2s[2]*t2s[3])
+#                 )
+#                 temp3 = np.dot(temp1, np.transpose(temp2))
+#                 _arr = np.reshape(temp3, (t1s[0], t1s[1], t2s[0], t2s[1]))
+#                 _arr = np.transpose(_arr, (0, 2, 1, 3))
+#                 temp3 = _arr
+#                 #  temp3 = np.transpose(np.reshape(temp3, (t1s[0], t1s[1],
+#                 #  t2s[0], t2s[1])), (0,2,1,3))
+#                 part += np.reshape(temp3, (t1s[0]*t2s[0], t1s[1]*t2s[1]))
+#             #  if (((ttl, btl) == cvals[0]) and (type(part) == float)):
+#             if (((ttl, btl) == cvals[0]) and (isinstance(part, float))):
+#                 special = True
+#             elif isinstance(part, float):
+#                 pass
+#             else:
+#                 temp.append(part)
+#         if (ttr, btr) == cvals[0]:
+#             block = np.vstack(temp)
+#             print("cvals[0]", block.shape)
+#         else:
+#             if special:
+#                 temp = np.vstack(temp) # stack the little matricies vertically
+#                 #  find out how many rows there are in the current block
+#                 ll = (block.shape[0])-(temp.shape[0])
+#                 print("special block, temp", block.shape, temp.shape)
+#                 print("ll =", ll)
+#                 # pads the remaining vertial elements with zeros
+#                 temp = np.pad(temp, ((ll, 0), (0, 0)), mode='constant')
+#                 print(block.shape, temp.shape)
+#                 # combines the new column and the old column together
+#                 block = np.hstack((block, temp))
+#             else:
+#                 temp = np.vstack(temp) # stack the little matricies vertically
+#                 # find out how many rows there are in the current block
+#                 ll = (temp.shape[0])-(block.shape[0])
+#                 print("block, temp", block.shape, temp.shape)
+#                 print("ll =", ll)
+#                 # pads the remaining vertical elements with zeros
+#                 block = np.pad(block, ((0, ll), (0, 0)), mode='constant')
+#                 print(block.shape, temp.shape)
+#                 # combines the new column and the old column
+#                 block = np.hstack((block, temp))
+#         sizes.append((t1s[1], t2s[1]))
+#         print(block.shape)
+#     evals, evecs = np.linalg.eigh(block)
+#     time1 = time()
+#     return evals, evecs, sizes
+
+
 def getQ(top, bot, cvals, D):
     """
     Creates a block of the Q matrix provided by charge pair inputs.
@@ -335,67 +430,38 @@ def getQ(top, bot, cvals, D):
     sizes = []
     time0 = time()
     # print cvals
-    for ttr, btr in cvals:
-        temp = []
-        special = False
-        for ttl, btl in cvals:
+    shapeblock = np.zeros((len(cvals), len(cvals), 2))
+    squares = {}
+    for j, (ttr, btr) in enumerate(cvals):      # columns
+        for i, (ttl, btl) in enumerate(cvals):  # rows
             part = 0.0
-            #  for xp in range(max(-D, -D+ttr-ttl, -D+btl-btr), min(D,
-            #  D+ttr-ttl, D+btl-btr)+1):
-            _max = max(-D, -D + ttr - ttl, -D + btl - btr)
-            _min = min(D, D + ttr - ttl, D + btl - btr)
-            for xp in range(_max, _min + 1):
+            for xp in range(max(-D, -D+ttr-ttl, -D+btl-btr), min(D, D+ttr-ttl, D+btl-btr)+1):
                 t1s = top[ttl, xp, ttr].shape
                 t2s = bot[btr, xp, btl].shape
-                temp1 = np.reshape(
-                    top[ttl, xp, ttr], (t1s[0]*t1s[1], t1s[2]*t1s[3])
-                )
-                temp2 = np.reshape(
-                    bot[btr, xp, btl], (t2s[0]*t2s[1], t2s[2]*t2s[3])
-                )
+                temp1 = np.reshape(top[ttl, xp, ttr], (t1s[0]*t1s[1], t1s[2]*t1s[3]))
+                temp2 = np.reshape(bot[btr, xp, btl], (t2s[0]*t2s[1], t2s[2]*t2s[3]))
                 temp3 = np.dot(temp1, np.transpose(temp2))
-                _arr = np.reshape(temp3, (t1s[0], t1s[1], t2s[0], t2s[1]))
-                _arr = np.transpose(_arr, (0, 2, 1, 3))
-                temp3 = _arr
-                #  temp3 = np.transpose(np.reshape(temp3, (t1s[0], t1s[1],
-                #  t2s[0], t2s[1])), (0,2,1,3))
+                temp3 = np.transpose(np.reshape(temp3, (t1s[0], t1s[1], t2s[0], t2s[1])), (0,2,1,3))
                 part += np.reshape(temp3, (t1s[0]*t2s[0], t1s[1]*t2s[1]))
-            #  if (((ttl, btl) == cvals[0]) and (type(part) == float)):
-            if (((ttl, btl) == cvals[0]) and (isinstance(part, float))):
-                special = True
-            elif isinstance(part, float):
+            if (type(part) == float):
                 pass
             else:
-                temp.append(part)
-        if (ttr, btr) == cvals[0]:
-            block = np.vstack(temp)
-        else:
-            if special:
-                temp = np.vstack(temp) # stack the little matricies vertically
-                #  find out how many rows there are in the current block
-                ll = (block.shape[0])-(temp.shape[0])
-                # print "special block, temp", block.shape[0], temp.shape[0]
-                # print "ll =", ll
-                # pads the remaining vertial elements with zeros
-                temp = np.pad(temp, ((ll, 0), (0, 0)), mode='constant')
-                # print temp.shape[0], block.shape[0]
-                # combines the new column and the old column together
-                block = np.hstack((block, temp))
-            else:
-                temp = np.vstack(temp) # stack the little matricies vertically
-                # find out how many rows there are in the current block
-                ll = (temp.shape[0])-(block.shape[0])
-                # print "block, temp", block.shape[0], temp.shape[0]
-                # print "ll =", ll
-                # pads the remaining vertical elements with zeros
-                block = np.pad(block, ((0, ll), (0, 0)), mode='constant')
-                # print temp.shape[0], block.shape[0]
-                # combines the new column and the old column
-                block = np.hstack((block, temp))
+                squares[(i, j)] = part
+                shapeblock[i, :, 0] = part.shape[0]
+                shapeblock[:, j, 1] = part.shape[1]
         sizes.append((t1s[1], t2s[1]))
+    h = int(np.sum(shapeblock[0, k, 1] for k in range(len(cvals))))
+    w = int(np.sum(shapeblock[k, 0, 0] for k in range(len(cvals))))
+    block = np.zeros((w, h))
+    for key, val in squares.items():
+        rr = int(np.sum(shapeblock[k, key[1], 0] for k in range(key[0])))
+        cc = int(np.sum(shapeblock[key[0], k, 1] for k in range(key[1])))
+        ss = shapeblock[key[0], key[1], :]
+        block[rr:rr+int(ss[0]), cc:cc+int(ss[1])] = val
     evals, evecs = np.linalg.eigh(block)
     time1 = time()
     return evals, evecs, sizes
+
 
 def blockeev(qblock, cvals):
     """
