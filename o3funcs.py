@@ -422,8 +422,9 @@ def getQ(top, bot, cvals, D):
 
     Returns
     -------
-    dict : A dictionary with the values of the block of the Q matrix.
-    sizes : A list tuples containing the shape of the two leftmost legs
+    evals : The eigenvalues of the block
+    evecs : The eigenvectors of the block
+    sizes : A list of tuples containing the shape of the two leftmost legs
             of the Q matrix block.  Used to build the U tensor dictionary.
 
     """
@@ -646,9 +647,6 @@ def update(ttop, tbot, udict, cidladded, D):
             for k in range(_max, _min + 1):
                 uls = udict[tl, bl].shape
                 tts = tbot[tr, k, tl].shape
-                ###############################################################
-                # NOTE: IF IT'S NOT WORKING, THIS SECTION MIGHT BE THE ISSUE 
-                ###############################################################
                 arr1 = np.reshape(
                     np.transpose(udict[tl, bl], (2, 1, 0)),
                     (uls[2] * uls[1], uls[0])
@@ -699,31 +697,12 @@ def update(ttop, tbot, udict, cidladded, D):
                     )
                 arr1 = np.transpose(arr1, (0, 3, 1, 2))
                 try:
-#                     topret_idx = (tl + bl, k + tr - tl, tr + br)
-#                     dot_prod = np.dot(top, bot)
-
-#                     arr1 = np.reshape(
-#                         dot_prod,
-#                         (uls[2], tts[2], tbs[3], urs[2])
-#                     )
-#                     arr1 = np.transpose(arr1, (0, 3, 1, 2))
                     topret[topret_idx] += arr1
 
-#                     botret_idx = (tr + br, bl + k - br, tl + bl)
-#                     botret[botret_idx] = topret[topret_idx]
                 except KeyError:
-#                     topret_idx = (tl + bl, k + tr - tl, tr + br)
-#                     dot_prod = np.dot(top, bot)
-
-#                     arr1 = np.reshape(
-#                         dot_prod,
-#                         (uls[2], tts[2], tbs[3], urs[2])
-#                     )
-#                     arr1 = np.transpose(arr1, (0, 3, 1, 2))
                     topret[topret_idx] = arr1
 
                 botret_idx = (tr + br, bl + k - br, tl + bl)
-                    #  topret_idx = (tl + bl, k + tr - tl, tr + br)
                 botret[botret_idx] = topret[topret_idx]
     time1 = time()
     print(f"update tensor time = {time1 - time0}")#, (time1-time0)
@@ -886,8 +865,7 @@ def getlists(O, Top, Bot, D, rdbond, dbond):
 def make_tm(ttop, tbot, chrglist, D):
     """
     Takes the current tensor and contracts it with itself to make the
-    eigenvalues of the transfer matrix, the density matrix, and the reduced
-    density matrix.
+    eigenvalues of the transfer matrix in their respective charge sectors.
 
     Parameters
     ----------
@@ -898,21 +876,16 @@ def make_tm(ttop, tbot, chrglist, D):
     chrglist : This is a list of lists of charge pair tuples.  The lists are
                sorted by total charge of the tuple pairs.
     D :        The abolute value of the largest Bessel used in the begining.
-    #  titer :    The number of iterations to take in the time direction, Nt =
-    #  2**titer.
 
     Returns
     -------
     chrg_evals : The eigenvalues of the charge blocks of the transfer matrix
                  and their charge as a dict.
-    rdmchrg :    The eigenvalues of the reduced density matrix and their
-                 charge.
-    dmchrg :     The eigenvalues of the density matrix and their charge.
+    blocks     : The actual matrix blocks of the transfer matrix.
+             
     """
+    
     chrg_evals = {}
-#     rdmchrg = {}
-#     dmchrg = {}
-
     # this will store the shapes of the diagonal blocks by charge 
     sblock = {}
     # this will store the tensor shapes of the diagonal blocks by charge
@@ -933,8 +906,7 @@ def make_tm(ttop, tbot, chrglist, D):
                 _max = max(-D, -D + ttl - ttr, -D + btr - btl)
                 _min = min(D, D + ttl - ttr, D + btr - btl)
                 for xp in range(_max, _min + 1):
-#                     if ((ttr + xp - ttl) == 0):
-                        # this is the tensor parameterized by the bottom idxs
+                    # this is the tensor parameterized by the bottom idxs
                     ts = tbot[ttr, xp, ttl].shape
                     #  this is the tensor parameterized by the top idxs
                     bs = ttop[btl, xp, btr].shape
@@ -951,8 +923,6 @@ def make_tm(ttop, tbot, chrglist, D):
                                                 (ts[0], ts[1], bs[0], bs[1])),
                                      (0, 2, 1, 3)), (ts[0]*bs[0], ts[1]*bs[1])
                         )
-#                 else:
-#                         pass
                 if isinstance(part, float):
                     pass
                 else:
