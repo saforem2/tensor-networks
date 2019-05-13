@@ -32,7 +32,7 @@ def Acoeff(n, x):
         return 0.0
     if (x == 0) and (n == 0):
         return 4 * np.pi
-    return (2 * np.pi) ** (1.5) * iv(n * 0.5, x) / np.sqrt(x)
+    return (2 * np.pi) ** (1.5) * iv(n + 0.5, x) / np.sqrt(x)
 
 def tensorgen(beta, mu, D, lmax):
     """
@@ -616,47 +616,49 @@ def update(ttop, tbot, udict, cidladded, D):
                     arr1, (urs[0] * tbs[0] * tbs[2], tbs[3] * urs[2])
                 )
 
-                arr1 = np.reshape(
-                    bot, (tbs[0], tbs[3], tbs[2], urs[0], urs[2])
+                arr2 = np.reshape(
+                    top, (uls[2], uls[1], tts[1], tts[2], tts[3])
                 )
-                arr1 = np.transpose(arr1, (3, 0, 2, 1, 4))
-                arr1 = np.reshape(
-                    arr1, (urs[0] * tbs[0] * tbs[2], tbs[3] * urs[2])
+                arr2 = np.transpose(arr2, (0, 3, 2, 1, 4))
+                top = np.reshape(
+                    arr2, (uls[2] * tts[2],  tts[1] * uls[1] * tts[3])
                 )
-                try:
-                    topret_idx = (tl + bl, k + tr - tl, tr + br)
-                    try:
-                        dot_prod = np.dot(top, bot)
-                    except:
-                        dot_prod = np.dot(top.reshape(bot.shape), bot)
-
-                    arr1 = np.reshape(
-                        dot_prod,
-                        (uls[2], tts[2], tbs[3], urs[2])
+                
+                topret_idx = (tl + bl, k + tr - tl, tr + br)
+                dot_prod = np.dot(top, bot)
+                
+                arr1 = np.reshape(
+                    dot_prod,
+                    (uls[2], tts[2], tbs[3], urs[2])
                     )
-                    arr1 = np.transpose(arr1, (0, 3, 1, 2))
+                arr1 = np.transpose(arr1, (0, 3, 1, 2))
+                try:
+#                     topret_idx = (tl + bl, k + tr - tl, tr + br)
+#                     dot_prod = np.dot(top, bot)
+
+#                     arr1 = np.reshape(
+#                         dot_prod,
+#                         (uls[2], tts[2], tbs[3], urs[2])
+#                     )
+#                     arr1 = np.transpose(arr1, (0, 3, 1, 2))
                     topret[topret_idx] += arr1
 
-                    botret_idx = (tr + br, bl + k - br, tl + bl)
-                    botret[botret_idx] = topret[topret_idx]
+#                     botret_idx = (tr + br, bl + k - br, tl + bl)
+#                     botret[botret_idx] = topret[topret_idx]
                 except KeyError:
-                    topret_idx = (tl + bl, k + tr - tl, tr + br)
+#                     topret_idx = (tl + bl, k + tr - tl, tr + br)
+#                     dot_prod = np.dot(top, bot)
 
-                    try:
-                        dot_prod = np.dot(top, bot)
-                    except:
-                        dot_prod = np.dot(top.reshape(bot.shape), bot)
-
-                    arr1 = np.reshape(
-                        dot_prod,
-                        (uls[2], tts[2], tbs[3], urs[2])
-                    )
-                    arr1 = np.transpose(arr1, (0, 3, 1, 2))
+#                     arr1 = np.reshape(
+#                         dot_prod,
+#                         (uls[2], tts[2], tbs[3], urs[2])
+#                     )
+#                     arr1 = np.transpose(arr1, (0, 3, 1, 2))
                     topret[topret_idx] = arr1
 
-                    botret_idx = (tr + br, bl + k - br, tl + bl)
+                botret_idx = (tr + br, bl + k - br, tl + bl)
                     #  topret_idx = (tl + bl, k + tr - tl, tr + br)
-                    botret[botret_idx] = topret[topret_idx]
+                botret[botret_idx] = topret[topret_idx]
     time1 = time()
     print(f"update tensor time = {time1 - time0}")#, (time1-time0)
     return topret, botret
@@ -750,64 +752,72 @@ def getlists(O, Top, Bot, D, rdbond, dbond):
     return clist, vlist, idxlist, slist
 
 #pylint: disable=invalid-name,too-many-locals
-def maketm(ttop, tbot, chrglist, D):
-    """
-    Takes the current tensor and contracts it with itself to make a transfer
-    matrix.
+# def maketm(ttop, tbot, chrglist, D):
+#     """
+#     #####################################################
+#     # NOTE: This funtion is not ready yet, empty blocks #
+#     #        need an exception.                         #
+#     ####################################################
+#     Takes the current tensor and contracts it with itself to make a transfer
+#     matrix.
 
-    Parameters
-    ----------
-    ttop :  The tensor.  This is the tensor which is parameterized in terms
-            of its left, right, and top inidices.
-    tbot :  The tensor.  This is the tensor which is parameterized in terms of
-            its left, right, and bottom inidices.
-    chrglist : This is a list of lists of charge pair tuples.  The lists are
-        sorted by total charge of the tuple pairs.
-    D :        The abolute value of the largest Bessel used in the begining.
+#     Parameters
+#     ----------
+#     ttop :  The tensor.  This is the tensor which is parameterized in terms
+#             of its left, right, and top inidices.
+#     tbot :  The tensor.  This is the tensor which is parameterized in terms of
+#             its left, right, and bottom inidices.
+#     chrglist : This is a list of lists of charge pair tuples.  The lists are
+#         sorted by total charge of the tuple pairs.
+#     D :        The abolute value of the largest Bessel used in the begining.
 
-    Returns
-    -------
-    TM : The transfer matrix in block diagonal form in terms of charge sectors.
+#     Returns
+#     -------
+#     TM : The transfer matrix in block diagonal form in terms of charge sectors.
 
-    """
-    blocks = []
-    for cid in chrglist:
-        # print cid
-        for ttl, btl in cid:
-            # print "----new row----"
-            temp = []
-            for ttr, btr in cid:
-                # print "new col."
-                part = 0.0
-                _max = max(-D, -D + ttl - ttr, -D + btr - btl)
-                _min = min(D, D + ttl - ttr, D + btr - btl)
-                for xp in range(_max, _min + 1):
-                    ts = tbot[ttr, xp, ttl].shape
-                    bs = ttop[btl, xp, btr].shape
-                    top = np.reshape(
-                        tbot[ttr, xp, ttl],
-                        (ts[0]*ts[1], ts[2]*ts[3])
-                    )
-                    bot = np.reshape(
-                        np.transpose(ttop[btl, xp, btr], (0, 1, 3, 2)),
-                        (bs[0]*bs[1], bs[3]*bs[2])
-                    )
-                    part += np.reshape(
-                        np.transpose(np.reshape(np.dot(top, bot.T),
-                                                (ts[0], ts[1], bs[0], bs[1])),
-                                     (0, 2, 1, 3)), (ts[0]*bs[0], ts[1]*bs[1])
-                    )
-                temp.append(part)
-            if (ttl, btl) == cid[0]:
-                print([len(x) for x in temp])
-                tm = np.hstack(temp)
-            else:
-                tm = np.vstack((tm, np.hstack(temp)))
-        blocks.append(tm)
-    return block_diag(*np.array(blocks))
+#     """
+#     blocks = []
+#     for cid in chrglist:
+#         # print cid
+#         for ttl, btl in cid:
+#             # print "----new row----"
+#             temp = []
+#             for ttr, btr in cid:
+#                 # print "new col."
+#                 part = 0.0
+#                 _max = max(-D, -D + ttl - ttr, -D + btr - btl)
+#                 _min = min(D, D + ttl - ttr, D + btr - btl)
+#                 for xp in range(_max, _min + 1):
+#                     ts = tbot[ttr, xp, ttl].shape
+#                     bs = ttop[btl, xp, btr].shape
+#                     top = np.reshape(
+#                         tbot[ttr, xp, ttl],
+#                         (ts[0]*ts[1], ts[2]*ts[3])
+#                     )
+#                     bot = np.reshape(
+#                         np.transpose(ttop[btl, xp, btr], (0, 1, 3, 2)),
+#                         (bs[0]*bs[1], bs[3]*bs[2])
+#                     )
+#                     part += np.reshape(
+#                         np.transpose(np.reshape(np.dot(top, bot.T),
+#                                                 (ts[0], ts[1], bs[0], bs[1])),
+#                                      (0, 2, 1, 3)), (ts[0]*bs[0], ts[1]*bs[1])
+#                     )
+#                 if isinstance(part, float):
+#                     pass
+#                 else:
+#                     temp.append(part)
+#             if (ttl, btl) == cid[0]:
+#                 print([len(x) for x in temp])
+#                 tm = np.hstack(temp)
+#                 print(tm.shape)
+#             else:
+#                 tm = np.vstack((tm, np.hstack(temp)))
+#         blocks.append(tm)
+#     return block_diag(*np.array(blocks))
 
 
-def reduced_dm(ttop, tbot, chrglist, D):
+def make_tm(ttop, tbot, chrglist, D):
     """
     Takes the current tensor and contracts it with itself to make the
     eigenvalues of the transfer matrix, the density matrix, and the reduced
@@ -857,23 +867,26 @@ def reduced_dm(ttop, tbot, chrglist, D):
                 _max = max(-D, -D + ttl - ttr, -D + btr - btl)
                 _min = min(D, D + ttl - ttr, D + btr - btl)
                 for xp in range(_max, _min + 1):
-                    # this is the tensor parameterized by the bottom idxs
+#                     if ((ttr + xp - ttl) == 0):
+                        # this is the tensor parameterized by the bottom idxs
                     ts = tbot[ttr, xp, ttl].shape
                     #  this is the tensor parameterized by the top idxs
                     bs = ttop[btl, xp, btr].shape
                     top = np.reshape(
                         tbot[ttr, xp, ttl],
                         (ts[0]*ts[1], ts[2]*ts[3])
-                    )
+                        )
                     bot = np.reshape(
                         np.transpose(ttop[btl, xp, btr], (0, 1, 3, 2)),
                         (bs[0]*bs[1], bs[3]*bs[2])
-                    )
+                        )
                     part += np.reshape(
                         np.transpose(np.reshape(np.dot(top, bot.T),
                                                 (ts[0], ts[1], bs[0], bs[1])),
                                      (0, 2, 1, 3)), (ts[0]*bs[0], ts[1]*bs[1])
-                    )
+                        )
+#                 else:
+#                         pass
                 if isinstance(part, float):
                     pass
                 else:
@@ -883,20 +896,20 @@ def reduced_dm(ttop, tbot, chrglist, D):
                     tshapeblock[i, j, :] = np.array([
                         ts[0], bs[0], ts[1], bs[1]
                     ])
-        h = np.sum(shapeblock[0, k, 1] for k in range(len(cid)))
-        w = np.sum(shapeblock[k, 0, 0] for k in range(len(cid)))
+        h = int(np.sum(shapeblock[0, k, 1] for k in range(len(cid))))
+        w = int(np.sum(shapeblock[k, 0, 0] for k in range(len(cid))))
         # print "width and height of block =", w, h
         tm = np.zeros((w, h))
         for key, val in squares.items():
             # print "key =", key
-            rr = np.sum(shapeblock[k, key[1], 0] for k in range(key[0]))
+            rr = int(np.sum(shapeblock[k, key[1], 0] for k in range(key[0])))
             # print "to row ", rr
-            cc = np.sum(shapeblock[key[0], k, 1] for k in range(key[1]))
+            cc = int(np.sum(shapeblock[key[0], k, 1] for k in range(key[1])))
             # print "to col ", cc
             ss = shapeblock[key[0], key[1], :]
             # print "shape =", ss
             # print "final two =", rr+ss[0], cc+ss[1]
-            tm[rr:rr+ss[0], cc:cc+ss[1]] = val
+            tm[rr:rr+int(ss[0]), cc:cc+int(ss[1])] = val
         sblock[np.sum(cid[0])] = shapeblock
         tsblock[np.sum(cid[0])] = tshapeblock
         # print "tm shape =", tm.shape

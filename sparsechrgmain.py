@@ -54,8 +54,7 @@ def main(args):
             print(f"iteration {i+1}")
             print("------------------------------------")
             charges, cidl = csf.chrgsets(initchrg) # generate charges and pairs
-            TM = csf.maketm(T, B, cidl, D)  # make transfermatrix from tensor
-            evals, tm_blocks = csf.reduced_dm(T, B, cidl, D)
+            evals, tm_blocks = csf.make_tm(T, B, cidl, D)
         else:
             print("------------------------------------")
             print(f"iteration {i+1}")
@@ -87,7 +86,7 @@ def main(args):
             csf.normalize(T, norm)
             csf.normalize(B, norm)
 
-
+    
     print(evals)
 
 
